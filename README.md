@@ -1,6 +1,10 @@
 # The Qual programming language
 
-Qual is a low level, performance based programming language. It's designed to be fast, safe and testable language. Featuring classical functional features including:
+Qual is a low level, performance based programming language. 
+
+## Functional features
+It's designed to be a fast, safe and testable language.
+Featuring classical functional features including:
 * Closures
 * First class functions
 * Immutable state
@@ -9,8 +13,11 @@ Qual is a low level, performance based programming language. It's designed to be
 * Lazy evaluation
 * Monads
 
-Closures, first class functions, pattern matching, type polymorphism and monads are all used to create readable, testable and maintainable code. Lazy evaluation is great for handling big data and AI. Also, mutable state allows for safe threading which is very important in subjects like webservers.
+These all help to create readable, testable and maintainable code.
+Lazy evaluation is great for handling big data and AI.
+Also, mutable state allows for safe threading which is very important in subjects like webservers.
 
+## Procedural features
 Qual also uses a few procedural features which are used for handling effects:
 * Function procedures
 * Compiler macros
