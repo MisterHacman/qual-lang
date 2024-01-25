@@ -26,3 +26,11 @@ Qual also uses a few procedural features which are used for handling effects:
 * Multithreading
 
 Which help creating testable code with effects and memory safety. They help with simple tasks.
+
+## Functional examples
+Closures are anonymous functions
+```
+id = :x -> x            // id takes an input and returns it
+
+drop = :x -> :y -> x    // drop takes two inputs and drops the second one and returns the first
+```
