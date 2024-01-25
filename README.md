@@ -32,5 +32,5 @@ Closures are anonymous functions
 ```
 id = :x -> x            // id takes an input and returns it
 
-drop = :x -> :y -> x    // drop takes two inputs and drops the second one and returns the first
+drop = :x -> :y -> x    // drop takes two inputs, drops the second one and yields the first
 ```
