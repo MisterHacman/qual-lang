@@ -8,4 +8,5 @@ Qual is a low level, performance based programming language. It's designed to be
 * Type polymorphism
 * Lazy evaluation
 * Monads
+
 Closures, first class functions, pattern matching, type polymorphism and monads are all used to create readable, testable and maintainable code. Lazy evaluation is great for handling big data and AI. Also, mutable state allows for safe threading which is very important in subjects like webservers.
