@@ -1,4 +1,4 @@
-# The Qual programming language
+#**The Qual programming language**
 
 Qual is a low level, performance based programming language. 
 
