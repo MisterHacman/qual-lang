@@ -10,3 +10,12 @@ Qual is a low level, performance based programming language. It's designed to be
 * Monads
 
 Closures, first class functions, pattern matching, type polymorphism and monads are all used to create readable, testable and maintainable code. Lazy evaluation is great for handling big data and AI. Also, mutable state allows for safe threading which is very important in subjects like webservers.
+
+Qual also uses a few procedural features which are used for handling effects:
+* Function procedures
+* Compiler macros
+* Borrow checking
+* Asyncronous procedures
+* Multithreading
+
+Which help creating testable code with effects and memory safety. They help with simple tasks.
