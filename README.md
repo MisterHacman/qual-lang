@@ -30,7 +30,9 @@ Which help creating testable code with effects and memory safety. They help with
 ## Functional examples
 Closures are anonymous functions
 ```
-id = :x -> x            // id takes an input and returns it
+// id takes an input and returns it
+id = :x -> x
 
-drop = :x -> :y -> x    // drop takes two inputs, drops the second one and yields the first
+// drop takes an input and stores it in the closure `:y -> x` which is returned
+drop = :x -> :y -> x
 ```
