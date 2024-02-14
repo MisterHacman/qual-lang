@@ -19,7 +19,7 @@ impl fmt::Display for TokenType {
 	}
 }
 
-const ID_SYMBOLS: &[u8] = &[b'_', b'.', b'@'];
+const ID_SYMBOLS: &[u8] = &[b'_', b'?', b'!', b'.', b'@'];
 const KEYWORDS: &[&str] = &["let", "val", "fn", "proc", "end", "use"];
 const SYMBOLS: &[&str] = &[":", "=", "->"];
 
