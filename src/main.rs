@@ -1,7 +1,9 @@
+pub mod parser;
 pub mod lexer;
 pub mod error;
 pub mod position;
 
+use crate::parser::{ Block, parse };
 use crate::lexer::{ Token, tokenize };
 use crate::error::{ Error, NormalError, ErrType::* };
 
@@ -9,6 +11,8 @@ use std::fs::File;
 use std::io::{ prelude::Read, Error as IOErr };
 use std::env::{ args, current_dir };
 use std::path::PathBuf;
+
+use std::collections::HashMap;
 
 fn main() {
 	let mut buf: Option<String> = None;
@@ -35,13 +39,14 @@ fn run(buf: &mut Option<String>) -> Result<(), Error> {
 
 	let tokens: Vec<Token> = tokenize(buf.as_ref().unwrap().as_bytes())?;
 	if options.contains(&"p".to_owned()) {
-		println!("{}", tokens.iter()
-				     .map(|token| token.data.clone())
-				     .fold("".to_owned(), |x, y| x.to_owned() + "\n" + &y)
-				     .as_str());
+		for token in tokens {
+			println!("{}", token.data);
+		};
 	} else {
 		println!("{:#?}", tokens);
-	}
+	};
+
+	let nodes: HashMap<String, Vec<Block>> = parse(tokens)?;
 	Ok(())
 }
 
