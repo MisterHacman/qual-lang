@@ -34,7 +34,7 @@ fn run(buf: &mut Option<String>) -> Result<(), Error> {
 	*buf = Some(file_contents);
 
 	let tokens: Vec<Token> = tokenize(buf.as_ref().unwrap().as_bytes())?;
-	if options.contains(&"pretty".to_owned()) {
+	if options.contains(&"p".to_owned()) {
 		println!("{}", tokens.iter()
 				     .map(|token| token.data.clone())
 				     .fold("".to_owned(), |x, y| x.to_owned() + "\n" + &y)
