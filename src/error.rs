@@ -1,9 +1,7 @@
-use crate::error::ErrType::*;
-
 use crate::position::Position;
 
-use std::fmt;
-use std::io::{ Error as IOErr };
+use std::fmt::{ Debug, Display };
+use std::io::Error as IOErr;
 
 pub enum ErrType {
 	CommandError,
@@ -12,28 +10,28 @@ pub enum ErrType {
 	ParserError,
 	TranspilerError,
 }
-impl fmt::Debug for ErrType {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Debug for ErrType {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(f, "{}", match self {
-			CommandError => "Command Error",
-			IOError => "IO Error",
-			LexerError => "Syntax Error",
-			ParserError => "Parse Error",
-			TranspilerError => "Transpile Error",
+			ErrType::CommandError => "Command Error",
+			ErrType::IOError => "IO Error",
+			ErrType::LexerError => "Syntax Error",
+			ErrType::ParserError => "Parse Error",
+			ErrType::TranspilerError => "Transpile Error",
 			_ => "Undefined Error",
 		})
 	}
 }
 
 pub struct Error(String);
-impl fmt::Debug for Error {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Debug for Error {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(f, "{}", self.0)
 	}
 }
-impl fmt::Display for Error {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		fmt::Debug::fmt(self, f)
+impl Display for Error {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		Debug::fmt(self, f)
 	}
 }
 
@@ -55,17 +53,18 @@ pub struct SyntaxError<'a> {
 	pub start: Position,
 	pub end: Position,
 	pub buf: &'a[u8],
+	pub newlines: &'a[usize],
 }
 impl<'a> From<SyntaxError<'a>> for Error {
 	fn from(value: SyntaxError) -> Self {
 		let data = value.data;
-		let pos = value.start.clone();
-		let ln_margin = " ".repeat(value.start.line.to_string().len());
-		let ln = value.start.line;
+		let pos = value.start;
+		let ln_margin = " ".repeat(value.start.line(value.newlines).to_string().len());
+		let ln = value.start.line(value.newlines);
 		let buf_str = String::from_utf8(value.buf.to_vec()).unwrap();
-		let code = buf_str.lines().collect::<Vec<_>>()[value.start.line - 1];
-		let bf_err = " ".repeat(value.start.column);
-		let at_err = "^".repeat(value.end.index - value.start.index - 1);
+		let code = buf_str.lines().collect::<Vec<_>>()[value.start.line(value.newlines) - 1];
+		let bf_err = " ".repeat(value.start.column(value.newlines));
+		let at_err = "^".repeat(value.end.0 - value.start.0 - 1);
 		Error(format!(
 				"SyntaxError: {data} at {pos}\
 				\n{ln_margin} |\

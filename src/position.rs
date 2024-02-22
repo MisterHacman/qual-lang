@@ -1,38 +1,41 @@
-use std::fmt;
+use std::fmt::{ Debug, Display };
+use std::ops::Add;
 
-#[derive(Clone)]
-pub struct Position {
-	pub index: usize,
-	pub line: usize,
-	pub column: usize,
-}
+#[derive(Clone, Copy)]
+pub struct Position(pub usize);
+
 impl Position {
-	pub fn get_next(self, buf: &[u8]) -> Self {
-		if buf[self.index] == b'\n' {
-			Position { index: self.index + 1, line: self.line + 1, column: 1 }
-		} else {
-			Position { index: self.index + 1, line: self.line, column: self.column + 1 }
-		}
-	}
-	pub fn next(&mut self, buf: &[u8]) {
-		if buf[self.index] == b'\n' {
-			self.line += 1;
-			self.column = 0;
-		} else {
-			self.column += 1;
+	pub fn line(&self, new_lines: &[usize]) -> usize {
+		let index = match new_lines.binary_search(&self.0) {
+			Ok(index) => index,
+			Err(index) => index,
 		};
-		self.index += 1;
+		index + 1
 	}
-}
-impl fmt::Debug for Position {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "[{},{}]", self.line, self.column)
-	}
-}
-impl fmt::Display for Position {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		fmt::Debug::fmt(self, f)
+	pub fn column(&self, new_lines: &[usize]) -> usize {
+		let index = match new_lines.binary_search(&self.0) {
+			Ok(index) => index,
+			Err(index) => index,
+		};
+		index - new_lines[index - 1]
 	}
 }
 
-pub const START_POSITION: Position = Position { index: 0, line: 1, column: 1 };
+impl Debug for Position {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{}", self.0)
+	}
+}
+impl Display for Position {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		Debug::fmt(self, f)
+	}
+}
+
+impl Add<usize> for Position {
+	type Output = Position;
+	fn add(self, rhs: usize) -> Self::Output {
+		Position(self.0 + rhs)
+	}
+}
+

@@ -9,15 +9,13 @@ pub type Array<'a> = Vec<Expr<'a>>;
 pub type Set<'a> = Vec<Expr<'a>>;
 pub type Map<'a> = Vec<(Expr<'a>, Expr<'a>)>;
 
-pub type Literal<'a> = Expr<'a>;
+pub type ListType<'a> = Type<'a>;
+pub type SetType<'a> = Type<'a>;
+pub struct MapType<'a> { key: Type<'a>, value: Type<'a> }
 
-pub type Type<'a> = Expr<'a>;
 pub struct Func<'a> { param: Name, expr: &'a Expr<'a> }
-pub type Pattern<'a> = Expr<'a>;
 
-pub enum Expr<'a> {
-	Name(Name),
-
+enum Literal<'a> {
 	Number(Number),
 	Char(char),
 	String(String),
@@ -26,17 +24,17 @@ pub enum Expr<'a> {
 	Array(Array<'a>),
 	Set(Set<'a>),
 	Map(Map<'a>),
-
-	Func(&'a Func<'a>),
-	Application(&'a Expr<'a>, Vec<&'a Expr<'a>>),
-
+}
+enum Type<'a> {
 	NamedType(Name),
 	FuncType(&'a Expr<'a>, &'a Expr<'a>),
 	TupleType(Vec<&'a Expr<'a>>),
 	ListType(&'a Expr<'a>),
 	SetType(&'a Expr<'a>),
 	MapType(&'a Expr<'a>, &'a Expr<'a>),
-
+}
+enum Pattern<'a> {
+	NamePattern(Name),
 	LiteralPattern(&'a Literal<'a>),
 	EitherPattern(&'a Pattern<'a>, &'a Pattern<'a>),
 	RangePattern(&'a Literal<'a>, &'a Literal<'a>),
@@ -47,14 +45,21 @@ pub enum Expr<'a> {
 	MapPattern(Vec<(Pattern<'a>, Pattern<'a>)>),
 }
 
-pub enum Block<'a> {
-	LetDeclaration(Name, Expr<'a>, Option<(Option<Vec<Name>>, Expr<'a>)>),
-	LetDefinition(Name, Vec<Pattern<'a>>, Expr<'a>),
-	ValDefinition(Name, Expr<'a>, Expr<'a>),
-	FunctionDefinition(Name, Vec<Block<'a>>, Expr<'a>),
+pub enum Expr<'a> {
+	Name(Name),
+	Literal(Literal<'a>),
+	Func(&'a Func<'a>),
+	Application(&'a Expr<'a>, &'a Expr<'a>),
 }
 
-pub fn parse<'a>(tokens: Vec<Token>) -> Result<HashMap<String, Vec<Block<'a>>>, Error> {
-	let procedures: HashMap<String, Vec<Block>>;
+pub enum Block<'a> {
+	LetDecl(Name, Type<'a>, Option<Expr<'a>>),
+	LetDef(Name, Vec<Pattern<'a>>, Expr<'a>),
+	ValDef(Name, Type<'a>, Expr<'a>),
+	FuncDef(Name, Vec<Block<'a>>, Expr<'a>),
+}
+
+pub fn parse<'a>(tokens: Vec<Token>) -> Result<Vec<Block<'a>>, Error> {
+	let procedures: Vec<Block>;
 	Ok(procedures)
 }

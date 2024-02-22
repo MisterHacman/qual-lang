@@ -1,18 +1,15 @@
-pub mod parser;
+//pub mod parser;
 pub mod lexer;
 pub mod error;
 pub mod position;
 
-use crate::parser::{ Block, parse };
+//use crate::parser::{ Block, parse };
 use crate::lexer::{ Token, tokenize };
 use crate::error::{ Error, NormalError, ErrType::* };
 
 use std::fs::File;
 use std::io::{ prelude::Read, Error as IOErr };
 use std::env::{ args, current_dir };
-use std::path::PathBuf;
-
-use std::collections::HashMap;
 
 fn main() {
 	let mut buf: Option<String> = None;
@@ -33,11 +30,20 @@ fn run(buf: &mut Option<String>) -> Result<(), Error> {
 		}
 	}
 
-	let working_directory: PathBuf = current_dir()?;
-	let file_contents: String = read_file(working_directory.to_str().unwrap(), &args[1])?;
+	let working_directory = current_dir()?;
+	let file_contents = read_file(working_directory.to_str().unwrap(), &args[1])?;
 	*buf = Some(file_contents);
+	let mut newlines: Vec<usize> = buf.as_ref()
+					  .unwrap()
+					  .chars()
+					  .enumerate()
+					  .filter_map(|(i, ch)| if ch == '\n' { Some(i) } else { None })
+					  .collect::<Vec<_>>();
+	newlines.reverse();
+	newlines.push(0);
+	newlines.reverse();
 
-	let tokens: Vec<Token> = tokenize(buf.as_ref().unwrap().as_bytes())?;
+	let tokens: Vec<Token> = tokenize(buf.as_ref().unwrap().as_bytes(), &newlines)?;
 	if options.contains(&"p".to_owned()) {
 		for token in tokens {
 			println!("{}", token.data);
@@ -46,7 +52,6 @@ fn run(buf: &mut Option<String>) -> Result<(), Error> {
 		println!("{:#?}", tokens);
 	};
 
-	let nodes: HashMap<String, Vec<Block>> = parse(tokens)?;
 	Ok(())
 }
 
