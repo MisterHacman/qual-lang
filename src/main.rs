@@ -6,6 +6,7 @@ pub mod position;
 //use crate::parser::{ Block, parse };
 use crate::lexer::{ Token, tokenize };
 use crate::error::{ Error, NormalError, ErrType::* };
+use crate::position::TAB_SIZE;
 
 use std::fs::File;
 use std::io::{ prelude::Read, Error as IOErr };
@@ -31,26 +32,26 @@ fn run(buf: &mut Option<String>) -> Result<(), Error> {
 	}
 
 	let working_directory = current_dir()?;
-	let file_contents = read_file(working_directory.to_str().unwrap(), &args[1])?;
+	let file_contents =
+		read_file(working_directory.to_str().unwrap(), &args[1])?.replace("\t", &"\t".repeat(TAB_SIZE))
+		.strip_suffix("\n")
+		.unwrap()
+		.to_string();
 	*buf = Some(file_contents);
-	let mut newlines: Vec<usize> = buf.as_ref()
-					  .unwrap()
-					  .chars()
-					  .enumerate()
-					  .filter_map(|(i, ch)| if ch == '\n' { Some(i) } else { None })
-					  .collect::<Vec<_>>();
+	let mut newlines: Vec<usize> =
+		buf
+		.as_ref()
+		.unwrap()
+		.chars()
+		.enumerate()
+		.filter_map(|(i, ch)| if ch == '\n' { Some(i) } else { None })
+		.collect::<Vec<_>>();
 	newlines.reverse();
 	newlines.push(0);
 	newlines.reverse();
 
 	let tokens: Vec<Token> = tokenize(buf.as_ref().unwrap().as_bytes(), &newlines)?;
-	if options.contains(&"p".to_owned()) {
-		for token in tokens {
-			println!("{}", token.data);
-		};
-	} else {
-		println!("{:#?}", tokens);
-	};
+	println!("{:#?}", tokens);
 
 	Ok(())
 }

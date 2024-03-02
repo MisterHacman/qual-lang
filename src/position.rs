@@ -1,23 +1,38 @@
 use std::fmt::{ Debug, Display };
-use std::ops::Add;
+use std::ops::{ Add, Sub };
+
+pub const TAB_SIZE: usize = 8;
 
 #[derive(Clone, Copy)]
-pub struct Position(pub usize);
+pub struct Position (
+	pub usize,
+	Option<usize>,
+	Option<usize>,
+);
 
 impl Position {
-	pub fn line(&self, new_lines: &[usize]) -> usize {
-		let index = match new_lines.binary_search(&self.0) {
-			Ok(index) => index,
-			Err(index) => index,
-		};
-		index + 1
+	pub fn new(index: usize) -> Position {
+		Position(index, None, None)
 	}
-	pub fn column(&self, new_lines: &[usize]) -> usize {
-		let index = match new_lines.binary_search(&self.0) {
+	pub fn line(&mut self, newlines: &[usize], end: bool) -> usize {
+		if self.1.is_some() { return self.1.unwrap() };
+		let index = match newlines.binary_search(&self.0) {
 			Ok(index) => index,
 			Err(index) => index,
 		};
-		index - new_lines[index - 1]
+		self.1 =
+			if self.0 == 0 { Some(1) }
+			else if end && self.0 - newlines[index - 1] == 1 { Some(index - 1) }
+			else { Some(index) };
+		self.1.unwrap()
+	}
+	pub fn column(&mut self, newlines: &[usize], end: bool) -> usize {
+		if self.2.is_some() { return self.2.unwrap() };
+		self.2 = Some(self.0 - newlines[self.line(newlines, end) - 1]);
+		self.2.unwrap()
+	}
+	pub fn show(&mut self, newlines: &[usize], end: bool) -> String {
+		format!("{}:{}", self.line(newlines, end), self.column(newlines, end))
 	}
 }
 
@@ -35,7 +50,12 @@ impl Display for Position {
 impl Add<usize> for Position {
 	type Output = Position;
 	fn add(self, rhs: usize) -> Self::Output {
-		Position(self.0 + rhs)
+		Position::new(self.0 + rhs)
 	}
 }
-
+impl Sub<usize> for Position {
+	type Output = Position;
+	fn sub(self, rhs: usize) -> Self::Output {
+		Position::new(self.0 - rhs)
+	}
+}

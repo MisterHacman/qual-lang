@@ -56,20 +56,62 @@ pub struct SyntaxError<'a> {
 	pub newlines: &'a[usize],
 }
 impl<'a> From<SyntaxError<'a>> for Error {
-	fn from(value: SyntaxError) -> Self {
+	fn from(mut value: SyntaxError) -> Self {
 		let data = value.data;
-		let pos = value.start;
-		let ln_margin = " ".repeat(value.start.line(value.newlines).to_string().len());
-		let ln = value.start.line(value.newlines);
-		let buf_str = String::from_utf8(value.buf.to_vec()).unwrap();
-		let code = buf_str.lines().collect::<Vec<_>>()[value.start.line(value.newlines) - 1];
-		let bf_err = " ".repeat(value.start.column(value.newlines));
-		let at_err = "^".repeat(value.end.0 - value.start.0 - 1);
-		Error(format!(
-				"SyntaxError: {data} at {pos}\
-				\n{ln_margin} |\
-				\n{ln} | {code}\
-				\n{ln_margin} | {bf_err}{at_err}"
-		))
+		let mut pos = value.start;
+		let file_pos = pos.show(value.newlines, false);
+		let buf_str = String::from_utf8(value.buf.to_vec()).unwrap().replace("\t", " ");
+
+		let start_ln = value.start.line(value.newlines, false);
+		let start_col = value.start.column(value.newlines, false);
+		let end_ln = value.end.line(value.newlines, true);
+		let end_col = value.end.column(value.newlines, true);
+
+		println!("{} {}", pos.show(value.newlines, false), value.end.show(value.newlines, true));
+
+		let code = 
+			&buf_str
+			.lines()
+			.collect::<Vec<_>>()
+			[start_ln - 1 ..= end_ln - 1];
+
+		if start_ln != end_ln {
+			let max_margin = end_ln.to_string().len();
+			let max_margin_text = " ".repeat(max_margin);
+			let margin: Vec<_> = (start_ln ..= end_ln).map(|i| " ".repeat(max_margin - i.to_string().len())).collect();
+			let ln: Vec<usize> = (start_ln ..= end_ln).collect();
+			Error(format!(
+				"Syntax Error: {data}\
+				\nat {file_pos}\
+				\n{max_margin_text} |\
+				{}",
+				(0 .. code.len()).map(|i| format!(
+					"\n{ln_num}{ln_margin} | {ln_code}\
+					\n{max_margin_text} | {bf_err}{at_err}",
+					ln_num = ln[i],
+					ln_margin = margin[i],
+					ln_code = code[i],
+					bf_err = if i == 0 { " ".repeat(start_col) } else { "".to_owned() },
+					at_err = match i {
+						j if j == code.len() - 1 => "^".repeat(end_col),
+						0 => "^".repeat(code[i].len() - start_col + 1),
+						_ => "^".repeat(code[i].len()),
+					},
+				)).collect::<String>(),
+			))
+		} else {
+			let margin = " ".repeat(start_ln.to_string().len());
+			let ln = value.start.line(value.newlines, false);
+			let bf_err = " ".repeat(start_col);
+			let at_err = "^".repeat(value.end.0 - value.start.0);
+			Error(format!(
+				"Syntax Error: {data}\
+				\nat {file_pos}\
+				\n{margin} |\
+				\n{ln} | {}\
+				\n{margin} | {bf_err}{at_err}",
+				code[0],
+			))
+		}
 	}
 }
