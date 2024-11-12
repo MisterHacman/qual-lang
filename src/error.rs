@@ -1,117 +1,56 @@
-use crate::position::Position;
+use std::{
+    fmt::{Debug, Display},
+    path::Path,
+};
 
-use std::fmt::{ Debug, Display };
-use std::io::Error as IOErr;
+use crate::token::Token;
 
-pub enum ErrType {
-	CommandError,
-	IOError,
-	LexerError,
-	ParserError,
-	TranspilerError,
-}
-impl Debug for ErrType {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{}", match self {
-			ErrType::CommandError => "Command Error",
-			ErrType::IOError => "IO Error",
-			ErrType::LexerError => "Syntax Error",
-			ErrType::ParserError => "Parse Error",
-			ErrType::TranspilerError => "Transpile Error",
-			_ => "Undefined Error",
-		})
-	}
+#[derive(Debug)]
+pub enum Error<'a> {
+    CmdlineError(&'a str),
+    SyntaxError {
+        err: &'a str,
+        token: Token,
+        filename: Box<Path>,
+    },
 }
 
-pub struct Error(String);
-impl Debug for Error {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{}", self.0)
-	}
+impl<'a> Display for Error<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CmdlineError(err) => write!(f, "Command Line Error: {}", err),
+            Self::SyntaxError {
+                err,
+                token,
+                filename,
+            } => {
+                let Some(filename_str) = filename.to_str() else {
+                    return write!(f, "IO Error: failed to retrieve path");
+                };
+                let Ok((row, column)) = file_position(&filename, token.start as usize) else {
+                    return write!(f, "IO Error: failed to read input file");
+                };
+                let spaces = " ".repeat((row + 1).ilog10() as usize);
+                let Ok(line) = get_line(&filename, row) else {
+                    return write!(f, "IO Error: failed to read input file");
+                };
+                let marker_indent = " ".repeat((column + 1).ilog10() as usize);
+                let markers = "^".repeat(token.length as usize);
+                write!(f, "Syntax Error: {err}\n --> {filename_str}:{row}:{column}\n{spaces} |\n{row} | {line}\n{spaces} | {marker_indent}{markers}\n{spaces} |")
+            }
+        }
+    }
 }
-impl Display for Error {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		Debug::fmt(self, f)
-	}
+
+impl<'a> std::error::Error for Error<'a> {}
+
+fn file_position(
+    filename: &Box<Path>,
+    index: usize,
+) -> Result<(usize, usize), Box<dyn std::error::Error>> {
+    todo!()
 }
 
-impl From<IOErr> for Error {
-	fn from(value: IOErr) -> Self {
-		Error(value.to_string())
-	}
-}
-
-pub struct NormalError(pub String, pub ErrType);
-impl From<NormalError> for Error {
-	fn from(value: NormalError) -> Self {
-		Error(format!("{:?} {:?}", value.1, value.0))
-	}
-}
-
-pub struct SyntaxError<'a> {
-	pub data: String,
-	pub start: Position,
-	pub end: Position,
-	pub buf: &'a[u8],
-	pub newlines: &'a[usize],
-}
-impl<'a> From<SyntaxError<'a>> for Error {
-	fn from(mut value: SyntaxError) -> Self {
-		let data = value.data;
-		let mut pos = value.start;
-		let file_pos = pos.show(value.newlines, false);
-		let buf_str = String::from_utf8(value.buf.to_vec()).unwrap().replace("\t", " ");
-
-		let start_ln = value.start.line(value.newlines, false);
-		let start_col = value.start.column(value.newlines, false);
-		let end_ln = value.end.line(value.newlines, true);
-		let end_col = value.end.column(value.newlines, true);
-
-		println!("{} {}", pos.show(value.newlines, false), value.end.show(value.newlines, true));
-
-		let code = 
-			&buf_str
-			.lines()
-			.collect::<Vec<_>>()
-			[start_ln - 1 ..= end_ln - 1];
-
-		if start_ln != end_ln {
-			let max_margin = end_ln.to_string().len();
-			let max_margin_text = " ".repeat(max_margin);
-			let margin: Vec<_> = (start_ln ..= end_ln).map(|i| " ".repeat(max_margin - i.to_string().len())).collect();
-			let ln: Vec<usize> = (start_ln ..= end_ln).collect();
-			Error(format!(
-				"Syntax Error: {data}\
-				\nat {file_pos}\
-				\n{max_margin_text} |\
-				{}",
-				(0 .. code.len()).map(|i| format!(
-					"\n{ln_num}{ln_margin} | {ln_code}\
-					\n{max_margin_text} | {bf_err}{at_err}",
-					ln_num = ln[i],
-					ln_margin = margin[i],
-					ln_code = code[i],
-					bf_err = if i == 0 { " ".repeat(start_col) } else { "".to_owned() },
-					at_err = match i {
-						j if j == code.len() - 1 => "^".repeat(end_col),
-						0 => "^".repeat(code[i].len() - start_col + 1),
-						_ => "^".repeat(code[i].len()),
-					},
-				)).collect::<String>(),
-			))
-		} else {
-			let margin = " ".repeat(start_ln.to_string().len());
-			let ln = value.start.line(value.newlines, false);
-			let bf_err = " ".repeat(start_col);
-			let at_err = "^".repeat(value.end.0 - value.start.0);
-			Error(format!(
-				"Syntax Error: {data}\
-				\nat {file_pos}\
-				\n{margin} |\
-				\n{ln} | {}\
-				\n{margin} | {bf_err}{at_err}",
-				code[0],
-			))
-		}
-	}
+fn get_line<'a>(filename: &Box<Path>, row: usize) -> Result<&'a str, Box<dyn std::error::Error>> {
+    todo!()
 }
