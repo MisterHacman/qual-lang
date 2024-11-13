@@ -1,11 +1,11 @@
-use std::env::Args;
+use std::{env::Args, path::Path};
 
 use crate::error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CmdlineArg {
     Option(String),
-    File(String),
+    File(Box<Path>),
 }
 
 impl CmdlineArg {
@@ -18,7 +18,8 @@ impl CmdlineArg {
 
 fn parse_arg(arg: String) -> Result<Vec<CmdlineArg>, Box<dyn std::error::Error>> {
     if arg.chars().next().unwrap() != '-' {
-        return Ok(vec![CmdlineArg::File(arg)]);
+        let path = Path::new(&arg);
+        return Ok(vec![CmdlineArg::File(path.into())]);
     }
     Ok(parse_option_arg(arg)?)
 }
