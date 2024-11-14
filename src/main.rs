@@ -2,7 +2,7 @@ mod cmdline;
 mod error;
 mod token;
 
-use std::{env::args, fs::File, io::Read, path::Path};
+use std::{env::args, fs::File, io::Read};
 
 use cmdline::CmdlineArg;
 
@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn read_file(filename: &Box<Path>) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn read_file(filename: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let mut file = File::open(filename)?;
 
     let buf = &mut [];
