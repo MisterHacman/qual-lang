@@ -1,6 +1,6 @@
 const PATH: &str = file!();
 
-use crate::{error::Error, read_file};
+use crate::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct Token {
@@ -8,10 +8,9 @@ pub struct Token {
     pub length: u32,
 }
 
-pub fn file_position(filename: &str, index: usize) -> Result<(u32, u32), Error<'static>> {
+pub fn file_position(buf: &[u8], index: usize) -> Result<(u32, u32), Error<'static>> {
     const FUNC: &str = "file_position";
 
-    let buf = read_file(filename)?;
     if index >= buf.len() {
         return Err(Error::new_code("`index` parameter out of bounds", PATH, FUNC));
     }
@@ -28,10 +27,9 @@ pub fn file_position(filename: &str, index: usize) -> Result<(u32, u32), Error<'
     Ok((line, column))
 }
 
-pub fn get_line<'a>(filename: &str, row: u32) -> Result<Vec<u8>, Error<'static>> {
+pub fn get_line<'a>(buf: &[u8], row: u32) -> Result<Vec<u8>, Error<'static>> {
     const FUNC: &str = "get_line";
 
-    let buf = read_file(filename)?;
     Ok(buf
         .split(|char| char == &b'\n')
         .nth(row as usize)

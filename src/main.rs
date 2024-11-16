@@ -10,14 +10,21 @@ use error::Error;
 fn main() -> Result<(), Error<'static>> {
     let cmdline_args = CmdlineArg::new(args())?;
 
+    let CmdlineArg::File(filename) = &cmdline_args[0] else {
+        println!("No input files");
+        return Ok(());
+    };
+
+    let _buf = read_file(filename);
+
     Ok(())
 }
 
-pub fn read_file(filename: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn read_file(filename: &str) -> Result<Vec<u8>, Error<'static>> {
     let mut file = File::open(filename)?;
 
-    let buf = &mut [];
-    let _file_len = file.read(buf)?;
+    let mut buf = Vec::new();
+    let _size = file.read_to_end(&mut buf)?;
 
     Ok(buf.to_vec())
 }
