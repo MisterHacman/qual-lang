@@ -2,7 +2,7 @@ const PATH: &str = file!();
 
 use std::fmt::{Debug, Display};
 
-use indoc::indoc;
+use colored::Colorize;
 
 use crate::token::{file_position, get_line, Token};
 
@@ -90,7 +90,7 @@ impl<'a> Error<'a> {
                 filename,
             } => {
                 let Ok((start_row, start_column)) = file_position(PATH, start.start as usize) else {
-                    return format!("{}", Error::new_code("failed to read input file", PATH, FUNC),);
+                    return format!("{}", Error::new_code("failed to read input file", PATH, FUNC));
                 };
                 let Ok((end_row, end_column)) = file_position(PATH, end.start as usize) else {
                     return format!("{}", Error::new_code("failed to read input file", PATH, FUNC));
@@ -104,32 +104,39 @@ impl<'a> Error<'a> {
                         Ok(String::from_utf8(get_line(filename, row)?)
                             .map_err(|_err| Error::new_code("failed to retrieve bytes as string", PATH, FUNC))?)
                     })
-                    .fold(Ok(vec![]), |acc: Result<Vec<String>, Error>, line: Result<_, Error>| {
-                        Ok([acc?, vec![line?]].concat())
-                    }) {
+                    .collect::<Result<Vec<_>, Error>>()
+                {
                     Ok(ok) => ok,
-                    Err(err) => {
-                        return format!("{}", err);
-                    }
+                    Err(err) => return err.to_string(),
                 };
 
-                let marker_indent = " ".repeat((start_column + 1).ilog10() as usize);
-                let markers = "^".repeat(start.length as usize);
+                let mut start_marker_indent = "".into();
+                let mut start_markers = "".into();
+                let mut end_marker_indent = "".into();
+                let end_markers;
+
+                if start_row != end_row {
+                    start_marker_indent = " ".repeat(start_column as usize);
+                    start_markers = "v".repeat(lines[0].len() - start_column as usize);
+                    end_markers = "^".repeat(end_column as usize + 1);
+                } else {
+                    end_marker_indent = " ".repeat(end_column as usize);
+                    end_markers = "^".repeat(start.length as usize);
+                }
 
                 self.show_error(
                     ErrorTag::SyntaxError,
                     err,
                     filename,
                     (start_row as u32, start_column as u32),
-                    (end_row as u32, end_column as u32),
                     line_nums,
                     max_line_num_len,
                     lines.to_vec(),
-                    &marker_indent,
-                    &markers,
+                    (&start_marker_indent, &start_markers),
+                    (&end_marker_indent, &end_markers),
                 )
             }
-            _ => format!("{}", Error::new_code("expected syntax error", PATH, FUNC,),),
+            _ => format!("{}", Error::new_code("expected syntax error", PATH, FUNC)),
         }
     }
     fn show_error(
@@ -137,42 +144,42 @@ impl<'a> Error<'a> {
         tag: ErrorTag,
         err: &str,
         filename: &str,
-        (start_row, start_column): (u32, u32),
-        (end_row, end_column): (u32, u32),
+        (row, column): (u32, u32),
         line_nums: Vec<u32>,
         max_line_num_len: u32,
         lines: Vec<String>,
-        marker_indent: &str,
-        markers: &str,
+        (start_marker_indent, start_markers): (&str, &str),
+        (end_marker_indent, end_markers): (&str, &str),
     ) -> String {
+        let tag = format!("{tag:?}").red().bold();
+        let err = format!(": {err}").bold();
+        let main_err = format!("{tag}{err}");
+
+        let arrow = "-->".blue();
+        let err_pos = format!("{tag}{err}\n  {arrow} {filename}:{row}{column}");
+
         let bar_indent = " ".repeat(max_line_num_len as usize);
+        let line_bar = "|".blue();
+
+        let err_top = "Γ".red();
+        let err_bar = "|".red();
+        let err_bottom = "L".red();
+
+        let top_preview = format!("{bar_indent} {line_bar} {err_top} {start_marker_indent}{start_markers}");
+        let bottom_preview = format!("{bar_indent} {line_bar} {err_bottom} {end_marker_indent}{end_markers}");
+
         let err_lines = line_nums
             .iter()
             .zip(lines)
             .map(|(line_num, line)| {
                 let bar_indent = " ".repeat((max_line_num_len - line_num.ilog10()) as usize);
-                format!("{line_num}{bar_indent} | {line}")
+                let line_num_str = format!("{line_num}{bar_indent}").blue();
+                format!("{line_num_str} {line_bar} {err_bar} {line}")
             })
             .collect::<Vec<_>>()
             .join("\n");
-        format!(
-            indoc! {"
-            {tag:?}: {err}
-              --> {filename}:{start_row}:{start_column}
-            {bar_indent} |
-            {err_lines}
-            {bar_indent} | {marker_indent}{markers}",
-            },
-            tag = tag,
-            err = err,
-            filename = filename,
-            start_row = start_row,
-            start_column = start_column,
-            bar_indent = bar_indent,
-            err_lines = err_lines,
-            marker_indent = marker_indent,
-            markers = markers
-        )
+
+        format!("{main_err}\n{err_pos}\n{top_preview}\n{err_lines}\n{bottom_preview}")
     }
 }
 

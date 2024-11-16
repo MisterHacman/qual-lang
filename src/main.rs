@@ -5,11 +5,10 @@ mod token;
 use std::{env::args, fs::File, io::Read};
 
 use cmdline::CmdlineArg;
+use error::Error;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Error<'static>> {
     let cmdline_args = CmdlineArg::new(args())?;
-
-    println!("{:?}", cmdline_args);
 
     Ok(())
 }

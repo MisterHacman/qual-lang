@@ -1,5 +1,7 @@
 use std::env::Args;
 
+use crate::error::Error;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CmdlineArg {
     Option(String),
@@ -7,13 +9,11 @@ pub enum CmdlineArg {
 }
 
 impl CmdlineArg {
-    pub fn new(cmdline_args: Args) -> Result<Vec<CmdlineArg>, Box<dyn std::error::Error>> {
-        cmdline_args
-            .skip(1)
-            .fold(Ok(vec![]), |acc, arg| Ok([acc?, vec![CmdlineArg::parse_arg(arg)?]].concat()))
+    pub fn new(cmdline_args: Args) -> Result<Vec<CmdlineArg>, Error<'static>> {
+        cmdline_args.skip(1).map(|arg| Ok(Self::parse_arg(arg)?)).collect()
     }
 
-    fn parse_arg(arg: String) -> Result<CmdlineArg, Box<dyn std::error::Error>> {
+    fn parse_arg(arg: String) -> Result<CmdlineArg, Error<'static>> {
         if arg.chars().next().unwrap() != '-' {
             return Ok(CmdlineArg::File(arg));
         }
