@@ -12,7 +12,7 @@ trait Node {}
 pub struct ItemNode {}
 impl Node for ItemNode {}
 
-pub fn parse(mut lexer: Lexer) -> Result<impl Iterator<Item = ItemNode>, Error<'static>> {
+pub fn parse<'a>(mut lexer: Lexer, filename: String) -> Result<impl Iterator<Item = ItemNode>, Error<'a>> {
     const FUNC: &str = "Parser::new";
 
     let token = lexer.next_token()?;
@@ -25,7 +25,7 @@ pub fn parse(mut lexer: Lexer) -> Result<impl Iterator<Item = ItemNode>, Error<'
                 err: "expected item, not identifier",
                 start: token.start,
                 end: token.end,
-                filename: lexer.filename,
+                filename,
             })
         }
     }

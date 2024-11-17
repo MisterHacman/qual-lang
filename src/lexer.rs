@@ -37,14 +37,14 @@ impl Buffer {
         self.curr_char = ch;
     }
 
-    fn get_token<'a>(&'a self, token: Token) -> Result<&'a str, Error<'a>> {
+    fn get_token(&self, token: Token) -> Result<String, Error<'static>> {
         const FUNC: &str = "Buffer::get_token";
 
-        self.buf.get(token.start as usize..=token.end as usize).ok_or(Error::code(
-            "failed to retrieve token string",
-            PATH,
-            FUNC,
-        ))
+        Ok(self
+            .buf
+            .get(token.start as usize..=token.end as usize)
+            .ok_or(Error::code("failed to retrieve token string", PATH, FUNC))?
+            .into())
     }
 }
 
@@ -105,11 +105,18 @@ impl Lexer {
             self.buf.next_char();
         }
 
-        Ok(Token {
+        let mut token = Token {
             token_type: TokenType::Id,
             start,
-            end: self.buf.index - 1,
-        })
+            end: self.buf.index,
+        };
+
+        match self.buf.get_token(token.clone())?.as_str() {
+            "import" | "fn" | "const" | "mutable" => token.token_type = TokenType::Keyword,
+            _ => (),
+        }
+
+        Ok(token)
     }
 
     fn get_str_token(&mut self) -> Result<Token, Error<'static>> {

@@ -22,9 +22,9 @@ fn main() -> Result<(), Error<'static>> {
 
     let buf = read_file(filename.clone())?;
 
-    let lexer = Lexer::new(buf, filename)?;
+    let mut lexer = Lexer::new(buf, filename.clone())?;
 
-    let ast = parse(lexer)?;
+    let ast = parse(lexer, filename)?;
 
     Ok(())
 }
