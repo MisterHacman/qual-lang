@@ -1,30 +1,30 @@
 mod cmdline;
 mod error;
-mod token;
+mod file;
+mod lexer;
+mod parser;
 
-use std::{env::args, fs::File, io::Read};
+use std::env;
 
-use cmdline::CmdlineArg;
+use cmdline::{get_cmdline_args, CmdlineArg};
 use error::Error;
+use file::read_file;
+use lexer::Lexer;
+use parser::parse;
 
 fn main() -> Result<(), Error<'static>> {
-    let cmdline_args = CmdlineArg::new(args())?;
+    let mut cmdline_args = get_cmdline_args(env::args())?;
 
-    let CmdlineArg::File(filename) = &cmdline_args[0] else {
+    let Some(CmdlineArg::File(filename)) = cmdline_args.next() else {
         println!("No input files");
         return Ok(());
     };
 
-    let _buf = read_file(filename);
+    let buf = read_file(filename.clone())?;
+
+    let lexer = Lexer::new(buf, filename)?;
+
+    let ast = parse(lexer)?;
 
     Ok(())
-}
-
-pub fn read_file(filename: &str) -> Result<Vec<u8>, Error<'static>> {
-    let mut file = File::open(filename)?;
-
-    let mut buf = Vec::new();
-    let _size = file.read_to_end(&mut buf)?;
-
-    Ok(buf.to_vec())
 }

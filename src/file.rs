@@ -1,18 +1,23 @@
 const PATH: &str = file!();
 
+use std::{fs::File, io::Read};
+
 use crate::error::Error;
 
-#[derive(Debug, Clone)]
-pub struct Token {
-    pub start: u32,
-    pub length: u32,
+pub fn read_file(filename: String) -> Result<Vec<u8>, Error<'static>> {
+    let mut file = File::open(filename)?;
+
+    let mut buf = Vec::new();
+    let _size = file.read_to_end(&mut buf)?;
+
+    Ok(buf.to_vec())
 }
 
 pub fn file_position(buf: &[u8], index: usize) -> Result<(u32, u32), Error<'static>> {
     const FUNC: &str = "file_position";
 
     if index >= buf.len() {
-        return Err(Error::new_code("`index` parameter out of bounds", PATH, FUNC));
+        return Err(Error::code("`index` parameter out of bounds", PATH, FUNC));
     }
 
     let (mut line, mut column) = (0, 0);
@@ -33,6 +38,6 @@ pub fn get_line<'a>(buf: &[u8], row: u32) -> Result<Vec<u8>, Error<'static>> {
     Ok(buf
         .split(|char| char == &b'\n')
         .nth(row as usize)
-        .ok_or(Error::new_code("`row` parameter out of bounds", PATH, FUNC))?
+        .ok_or(Error::code("`row` parameter out of bounds", PATH, FUNC))?
         .to_vec())
 }

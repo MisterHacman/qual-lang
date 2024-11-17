@@ -4,10 +4,7 @@ use std::fmt::{Debug, Display};
 
 use colored::{ColoredString, Colorize};
 
-use crate::{
-    read_file,
-    token::{file_position, get_line, Token},
-};
+use crate::file::{file_position, get_line, read_file};
 
 #[derive(Debug)]
 enum ErrorTag {
@@ -33,9 +30,9 @@ pub enum Error<'a> {
     CmdlineError(String),
     SyntaxError {
         err: &'a str,
-        start: &'a Token,
-        end: &'a Token,
-        filename: &'a str,
+        start: u32,
+        end: u32,
+        filename: String,
     },
 }
 
@@ -45,11 +42,11 @@ impl<'a> From<Box<dyn std::error::Error>> for Error<'a> {
 
         if value.is::<Error>() {
             let Ok(err) = value.downcast::<Error>() else {
-                return Error::new_code("logic error", PATH, FUNC);
+                return Error::code("logic error", PATH, FUNC);
             };
             *err
         } else {
-            Error::new_code(&value.to_string(), PATH, FUNC)
+            Error::code(&value.to_string(), PATH, FUNC)
         }
     }
 }
@@ -58,7 +55,7 @@ impl<'a> From<std::io::Error> for Error<'a> {
     fn from(value: std::io::Error) -> Self {
         const FUNC: &str = "Error::from";
 
-        Error::new_code(&value.to_string(), PATH, FUNC)
+        Error::code(&value.to_string(), PATH, FUNC)
     }
 }
 
@@ -72,7 +69,7 @@ macro_rules! err {
 }
 
 impl<'a> Error<'a> {
-    pub fn new_code(err: &str, path: &str, func: &str) -> Self {
+    pub fn code(err: &str, path: &str, func: &str) -> Self {
         let tag = ErrorTag::Code.to_string().red().bold();
         let err_str = format!(": {err}").bold();
         let arrow = "-->".blue();
@@ -84,10 +81,7 @@ impl<'a> Error<'a> {
 
         match self {
             Self::Code(err) => err.to_string(),
-            _ => unreachable!(
-                "{}",
-                Self::new_code(&format!("expected code error, found {self}"), PATH, FUNC)
-            ),
+            _ => unreachable!("{}", Self::code(&format!("expected code error, found {self}"), PATH, FUNC)),
         }
     }
 
@@ -98,7 +92,7 @@ impl<'a> Error<'a> {
             Self::CmdlineError(err) => format!("{}: {err}", ErrorTag::CmdlineError),
             _ => unreachable!(
                 "{}",
-                Self::new_code(&format!("expected command line error, found {self}"), PATH, FUNC)
+                Self::code(&format!("expected command line error, found {self}"), PATH, FUNC)
             ),
         }
     }
@@ -113,19 +107,19 @@ impl<'a> Error<'a> {
             filename,
         } = self
         else {
-            return format!("{}", Error::new_code("expected syntax error", PATH, FUNC));
+            return format!("{}", Error::code("expected syntax error", PATH, FUNC));
         };
 
-        let buf = err!(read_file(filename));
-        let (start_row, start_column) = err!(file_position(&buf, start.start as usize));
-        let (end_row, end_column) = err!(file_position(&buf, end.start as usize));
+        let buf = err!(read_file(filename.into()));
+        let (start_row, start_column) = err!(file_position(&buf, *start as usize));
+        let (end_row, end_column) = err!(file_position(&buf, *end as usize));
 
         let line_nums = (start_row + 1..=end_row + 1).collect::<Vec<_>>();
         let max_line_num_len = (end_row + 1).ilog10() + 1;
         let lines = err!((start_row..=end_row)
             .map(|row| {
                 Ok(String::from_utf8(get_line(&buf, row)?)
-                    .map_err(|_err| Error::new_code("failed to retrieve bytes as string", PATH, FUNC))?)
+                    .map_err(|_err| Error::code("failed to retrieve bytes as string", PATH, FUNC))?)
             })
             .collect::<Result<Vec<_>, Error>>());
 
@@ -142,7 +136,7 @@ impl<'a> Error<'a> {
             end_markers = format!("{}^", "—".repeat(end_column as usize)).red();
         } else {
             end_marker_indent = " ".repeat(end_column as usize);
-            end_markers = "^".repeat(start.length as usize).red();
+            end_markers = "^".repeat((end - start) as usize).red();
         }
 
         self.show_error(
