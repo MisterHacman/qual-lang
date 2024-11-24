@@ -23,7 +23,14 @@ name = "qual-lang"
 version = "0.1.0"
 dependencies = [
  "colored",
+ "strumbra",
 ]
+
+[[package]]
+name = "strumbra"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74da746a964d10b4a1b9693b3bccfe49b193dfc590d4191c6ba2e3e313841335"
 
 [[package]]
 name = "windows-sys"
