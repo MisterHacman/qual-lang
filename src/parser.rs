@@ -15,15 +15,16 @@ pub fn parse<'a>(
     filename: String,
     line_offsets: Vec<u32>,
 ) -> Result<impl Iterator<Item = ItemNode>, Error<'a>> {
-    let token = lexer.next_token(line_offsets.clone())?;
+    let token = lexer.next_token()?;
 
     match token.tag {
         TokenType::Keyword => (),
-        TokenType::EOF => return Ok(iter::empty::<ItemNode>()),
+        TokenType::Eof => return Ok(iter::empty::<ItemNode>()),
         _ => {
             return Err(Error::SyntaxError {
                 err: "expected item, not identifier",
                 buf: token.buf,
+                token_index: token.start_index,
                 start_index: token.start_index,
                 filename,
                 line_offsets,

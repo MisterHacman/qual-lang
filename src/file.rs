@@ -1,15 +1,12 @@
 use std::{fs::File, io::Read, iter};
 
-use crate::error::Error;
+use crate::{code_err, error::Error};
 
 pub fn read_file(filename: String) -> Result<Vec<u8>, Error<'static>> {
-    let mut file =
-        File::open(filename).map_err(|err| Error::code("failed to open file", Some(err), file!(), line!(), column!()))?;
+    let mut file = code_err!(File::open(filename), "failed to open file");
 
     let mut buf = Vec::new();
-    let _size = file
-        .read_to_end(&mut buf)
-        .map_err(|err| Error::code("failed to read file", Some(err), file!(), line!(), column!()))?;
+    let _size = code_err!(file.read_to_end(&mut buf), "failed to read file");
 
     Ok(buf.to_vec())
 }
@@ -41,13 +38,13 @@ fn binary_search(value: u32, sorted_array: Vec<u32>) -> u32 {
     if sorted_array.len() < 2 {
         return (value > sorted_array[0]) as u32;
     }
-    let mut search_index = sorted_array.len() as u32 / 2;
+    let mut search_index = (sorted_array.len() as u32 - 1) / 2;
     let mut change_factor = search_index / 2;
     loop {
         if value < sorted_array[search_index as usize] {
-            search_index -= change_factor;
+            search_index = (sorted_array.len() as u32 - 2).min(search_index - change_factor);
         } else if value > sorted_array[search_index as usize + 1] {
-            search_index += change_factor;
+            search_index = (sorted_array.len() as u32 - 2).min(search_index + change_factor);
         } else {
             return search_index;
         }

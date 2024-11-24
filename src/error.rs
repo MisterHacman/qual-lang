@@ -29,10 +29,21 @@ pub enum Error<'a> {
     SyntaxError {
         err: &'a str,
         buf: SharedString,
+        token_index: u32,
         start_index: u32,
         filename: String,
         line_offsets: Vec<u32>,
     },
+}
+
+#[macro_export]
+macro_rules! code_err {
+    ($result:expr, $info:literal) => {
+        $result.map_err(|err| Error::code($info, Some(err), file!(), line!(), column!()))?
+    };
+    ($info:literal) => {
+        Error::code($info, None::<Error>, file!(), line!(), column!())
+    };
 }
 
 impl<'a> Error<'a> {
@@ -51,31 +62,13 @@ impl<'a> Error<'a> {
     fn parse_code_error(&self) -> String {
         match self {
             Self::Code(err) => err.to_string(),
-            _ => unreachable!(
-                "{}",
-                Self::code(
-                    &format!("expected code error, found {self}"),
-                    None::<Error>,
-                    file!(),
-                    line!(),
-                    column!()
-                )
-            ),
+            _ => unreachable!("{}", code_err!("expected code error")),
         }
     }
 
     fn parse_cmdline_error(&self) -> String {
         let Self::CmdlineError(err) = self else {
-            unreachable!(
-                "{}",
-                Self::code(
-                    &format!("expected command line error, found {self}"),
-                    None::<Error>,
-                    file!(),
-                    line!(),
-                    column!()
-                )
-            );
+            unreachable!("{}", code_err!("expected command line error"));
         };
         let tag = ErrorTag::CmdlineError.to_string().red().bold();
         let err_str = format!(": {err}").bold();
@@ -86,21 +79,22 @@ impl<'a> Error<'a> {
         let Self::SyntaxError {
             err,
             buf,
+            token_index,
             start_index,
             filename,
             line_offsets,
         } = self
         else {
-            unreachable!(
-                "{}",
-                Error::code("expected syntax error", None::<Error>, file!(), line!(), column!())
-            );
+            unreachable!("{}", code_err!("expected syntax error"));
         };
 
-        let end = start_index + buf.len() as u32;
+        let end = token_index + buf.len() as u32;
 
         let (start_row, start_column) = file_position(*start_index, line_offsets.to_vec());
-        let (end_row, _end_column) = file_position(end, line_offsets.to_vec());
+        let (end_row, mut end_column) = file_position(end, line_offsets.to_vec());
+        if end_column == start_column {
+            end_column += 1
+        }
 
         let tag = ErrorTag::SyntaxError.to_string().red().bold();
         let err_str = format!(": {err}").bold();
@@ -113,13 +107,35 @@ impl<'a> Error<'a> {
 
         let bar = "|".blue();
 
+        let start_marker = "^".red();
+        let marker_padding = " ".repeat(start_column as usize).red();
+
         if start_row == end_row {
-            return format!("{main_error}\n{bar} {buf}");
+            return format!(
+                "{main_error}\n{bar}\n{bar} {buf}\n{bar} {marker_padding}{start_marker}{markers}",
+                markers = "~".repeat((end_column - start_column - 1) as usize).red()
+            );
         }
 
         let lines = buf
             .split('\n')
-            .map(|line| format!("{bar} {line}"))
+            .enumerate()
+            .map(|(index, line)| match index {
+                0 => format!(
+                    "{bar} {line}\n{bar} {marker_padding}{start_marker}{markers}",
+                    markers = "~".repeat(line.len() - start_column as usize).red()
+                ),
+                _ if index as u32 == end_row - start_row => {
+                    format!(
+                        "{bar} {line}\n{bar} {markers}",
+                        markers = "~".repeat(line.len() as usize).red()
+                    )
+                }
+                _ => format!(
+                    "{bar} {line}\n{bar} {markers}",
+                    markers = "~".repeat(end_column as usize).red()
+                ),
+            })
             .collect::<Vec<_>>()
             .join("\n");
         format!("{main_error}\n{lines}")
@@ -134,6 +150,7 @@ impl<'a> Display for Error<'a> {
             Self::SyntaxError {
                 err: _,
                 buf: _,
+                token_index: _,
                 start_index: _,
                 filename: _,
                 line_offsets: _,

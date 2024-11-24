@@ -27,16 +27,13 @@ fn run() -> Result<(), Error<'static>> {
     };
 
     let buf = read_file(filename.clone())?;
-    let line_offsets = get_line_offsets(
-        String::from_utf8(buf.clone())
-            .map_err(|err| Error::code("invalid bytecode", Some(err), file!(), line!(), column!()))?,
-    );
+    let line_offsets = get_line_offsets(code_err!(String::from_utf8(buf.clone()), "invalid bytecode"));
 
-    let mut lexer = Lexer::new(&buf, filename.clone())?;
+    let mut lexer = Lexer::new(&buf, filename.clone(), line_offsets.clone())?;
     let mut tokens = vec![];
     loop {
-        tokens.push(lexer.next_token(line_offsets.clone())?);
-        if tokens.last().unwrap().tag == TokenType::EOF {
+        tokens.push(lexer.next_token()?);
+        if tokens.last().unwrap().tag == TokenType::Eof {
             break;
         }
     }
